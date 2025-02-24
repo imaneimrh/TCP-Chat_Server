@@ -1,7 +1,5 @@
 # TCP-Chat_Server
 
-# TCP Chat Server
-
 A multi-user TCP chat server implemented in Go with room management and file transfer capabilities.
 
 ## Features
