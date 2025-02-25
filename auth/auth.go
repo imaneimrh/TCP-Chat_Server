@@ -1,4 +1,4 @@
-package server
+package auth
 
 import (
 	"fmt"
@@ -13,18 +13,18 @@ type User struct {
 	PasswordHash string
 }
 
-type AuthManager struct {
+type Manager struct {
 	Users      map[string]User
 	UsersMutex sync.RWMutex
 }
 
-func NewAuthManager() *AuthManager {
-	return &AuthManager{
+func NewManager() *Manager {
+	return &Manager{
 		Users: make(map[string]User),
 	}
 }
 
-func (am *AuthManager) Register(username, password string) error {
+func (am *Manager) Register(username, password string) error {
 	am.UsersMutex.Lock()
 	defer am.UsersMutex.Unlock()
 
@@ -46,7 +46,7 @@ func (am *AuthManager) Register(username, password string) error {
 	return nil
 }
 
-func (am *AuthManager) Authenticate(username, password string) error {
+func (am *Manager) Authenticate(username, password string) error {
 	am.UsersMutex.RLock()
 	defer am.UsersMutex.RUnlock()
 
@@ -63,7 +63,7 @@ func (am *AuthManager) Authenticate(username, password string) error {
 	return nil
 }
 
-func (am *AuthManager) GetUser(username string) (User, bool) {
+func (am *Manager) GetUser(username string) (User, bool) {
 	am.UsersMutex.RLock()
 	defer am.UsersMutex.RUnlock()
 
@@ -71,7 +71,7 @@ func (am *AuthManager) GetUser(username string) (User, bool) {
 	return user, exists
 }
 
-func (am *AuthManager) ListUsers() []string {
+func (am *Manager) ListUsers() []string {
 	am.UsersMutex.RLock()
 	defer am.UsersMutex.RUnlock()
 
@@ -81,4 +81,12 @@ func (am *AuthManager) ListUsers() []string {
 	}
 
 	return users
+}
+
+func (am *Manager) IsUserLoggedIn(username string, clients map[string]interface{}) bool {
+	am.UsersMutex.RLock()
+	defer am.UsersMutex.RUnlock()
+
+	_, exists := am.Users[username]
+	return exists && clients != nil
 }

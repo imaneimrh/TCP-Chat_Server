@@ -9,7 +9,7 @@ import (
 	"github.com/imaneimrh/TCP-Chat_Server/shared"
 )
 
-func main() {
+func main2() {
 	testFilePath := "test_file.txt"
 	if _, err := os.Stat(testFilePath); os.IsNotExist(err) {
 		f, err := os.Create(testFilePath)
