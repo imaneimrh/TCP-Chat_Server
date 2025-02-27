@@ -250,7 +250,7 @@ func HandleFileTransfer(msg shared.Message, writer io.Writer, ft *FileTransfer) 
 			response := shared.Message{
 				Type:      shared.TextMessage,
 				Sender:    "Server",
-				Recipient: msg.Sender,
+				Recipient: msg.Recipient,
 				Content:   fmt.Sprintf("File transfer progress: %d%% %s", progress, progressBar),
 			}
 

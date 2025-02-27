@@ -142,6 +142,8 @@ func main() {
 			buffer := make([]byte, 8192)
 			offset := 0
 
+			var isLastChunk bool
+
 			for {
 				n, err := file.Read(buffer)
 				if err != nil && err != io.EOF {
@@ -153,6 +155,8 @@ func main() {
 					break
 				}
 
+				isLastChunk = (err == io.EOF)
+
 				fileChunk := shared.Message{
 					Type:       shared.FileTransferData,
 					Sender:     "",
@@ -163,7 +167,7 @@ func main() {
 					FileOffset: offset,
 				}
 
-				if err == io.EOF {
+				if isLastChunk {
 					fileChunk.Type = shared.FileTransferComplete
 				}
 
@@ -184,12 +188,33 @@ func main() {
 				progressBar := generateProgressBar(int(progress), 40)
 				fmt.Printf("\r[Progress: %.1f%% %s]", progress, progressBar)
 
-				if err == io.EOF {
+				if isLastChunk {
 					fmt.Println("\n[File transfer complete!]")
 					break
 				}
 
 				time.Sleep(10 * time.Millisecond)
+			}
+			if !isLastChunk {
+				completeMsg := shared.Message{
+					Type:       shared.FileTransferComplete,
+					Sender:     "",
+					Recipient:  recipient,
+					FileName:   filepath.Base(filePath),
+					FileSize:   int(fileInfo.Size()),
+					FileOffset: offset,
+				}
+
+				completeData, err := json.Marshal(completeMsg)
+				if err != nil {
+					fmt.Printf("Error encoding completion message: %v\n", err)
+				} else {
+					_, err = conn.Write(append(completeData, '\n'))
+					if err != nil {
+						fmt.Printf("Error sending completion message: %v\n", err)
+					}
+					time.Sleep(50 * time.Millisecond)
+				}
 			}
 
 			file.Close()

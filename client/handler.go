@@ -629,7 +629,55 @@ func (h *Handler) HandleClient(conn net.Conn) {
 			} else if msg.Type == shared.FileTransferRequest ||
 				msg.Type == shared.FileTransferData ||
 				msg.Type == shared.FileTransferComplete {
-				HandleFileTransfer(msg, conn, h.FileTransfer)
+				if msg.Type == shared.FileTransferComplete {
+
+					err := h.FileTransfer.ReceiveChunk(msg)
+					if err != nil {
+						log.Printf("Error receiving final file chunk: %v", err)
+						continue
+					}
+
+					h.mu.RLock()
+					recipient, exists := h.Clients[msg.Recipient]
+					h.mu.RUnlock()
+
+					if exists {
+						recipientMsg := shared.Message{
+							Type:   shared.TextMessage,
+							Sender: "Server",
+							Content: fmt.Sprintf("╔════════════════════════════════════════════════════╗\n"+
+								"║           File Transfer Complete                   ║\n"+
+								"╠════════════════════════════════════════════════════╣\n"+
+								"║ File: %-43s ║\n"+
+								"║ Size: %-7.2f KB                                 ║\n"+
+								"║ From: %-43s ║\n"+
+								"║                                                ║\n"+
+								"║ File saved to: downloads/%-27s ║\n"+
+								"╚════════════════════════════════════════════════════╝",
+								msg.FileName, float64(msg.FileSize)/1024, msg.Sender, msg.FileName),
+						}
+						recipient.Send <- recipientMsg
+					}
+
+					confirmMsg := shared.Message{
+						Type:   shared.TextMessage,
+						Sender: "Server",
+						Content: fmt.Sprintf("╔════════════════════════════════════════════════════╗\n"+
+							"║           File Transfer Complete                   ║\n"+
+							"╠════════════════════════════════════════════════════╣\n"+
+							"║ File: %-43s ║\n"+
+							"║ Size: %-7.2f KB                                 ║\n"+
+							"║ To:   %-43s ║\n"+
+							"║                                                ║\n"+
+							"║ File successfully transferred                   ║\n"+
+							"╚════════════════════════════════════════════════════╝",
+							msg.FileName, float64(msg.FileSize)/1024, msg.Recipient),
+					}
+					client.Send <- confirmMsg
+				} else {
+
+					HandleFileTransfer(msg, conn, h.FileTransfer)
+				}
 			} else {
 
 				if msg.RoomName == "" {
